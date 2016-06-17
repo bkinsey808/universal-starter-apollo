@@ -1,7 +1,36 @@
 import { Component, Directive, ElementRef, Renderer } from '@angular/core';
 import { RouteConfig, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { Http } from '@angular/http';
-import 'angular2-apollo';
+import 'isomorphic-fetch';
+import { Apollo } from 'angular2-apollo';
+/*import ApolloClient, {
+  createNetworkInterface
+} from 'apollo-client';x*/
+import gql from 'apollo-client/gql';
+import { mockClient } from '../mocks';
+
+const query = gql`
+  query heroes {
+    allHeroes(first: 1) {
+      heroes {
+        name
+      }
+    }
+  }
+`;
+
+const data = {
+  allHeroes: {
+    heroes: [{ name: 'Mr Foo' }],
+  },
+};
+
+const client = mockClient({
+  request: { query },
+  result: { data },
+});
+
+
 
 // templateUrl example
 // import {Home} from './home';
@@ -81,6 +110,9 @@ export class About { }
       <strong>Async data call return value:</strong>
       <pre>{{ data | json }}</pre>
 
+      <strong>From apollo:</strong>
+      <pre>{{ heroesData | json }}</pre>
+
       <strong>Router-outlet:</strong>
       <main>
         <router-outlet></router-outlet>
@@ -97,18 +129,31 @@ export class About { }
   { path: '/about', component: About, name: 'About' },
   { path: '/**', redirectTo: ['Home'] }
 ])
+@Apollo({
+  client,
+  queries() {
+    return {
+      heroesData: { query },
+    };
+  }
+})
 export class App {
   title: string = 'ftw';
   data = {};
   server: string;
+  heroesData: any;
 
-  constructor(public http: Http) { }
+  constructor(public http: Http) {}
 
   ngOnInit() {
     // limit the use of setTimeouts
     setTimeout(() => {
       this.server = 'This was rendered from the server!';
     }, 10);
+
+    setTimeout(() => {
+      console.log('heroesData:', this.heroesData);
+    }, 250);
 
     // use services for http calls
     this.http.get('/data.json')
